@@ -1605,18 +1605,10 @@ def build_skills_system_prompt(
     # what the index stops showing them. Match on the top-level category
     # segment so nested categories ("social-media/twitter") are demoted with
     # their parent.
-    demoted = frozenset(
-        cat for cat in skills_by_category
-        if cat.split("/", 1)[0] in (compact_categories or frozenset())
-    )
+    # Local patch: always render the skills index as names only to save tokens.
+    demoted = frozenset()
 
     hidden_note = ""
-    if demoted:
-        hidden_note = (
-            "\n(Categories marked [names only] are outside the current coding "
-            "context, so their descriptions are omitted — the skills work "
-            "normally and load with skill_view(name) as usual.)"
-        )
 
     if not skills_by_category:
         result = ""
@@ -1624,24 +1616,8 @@ def build_skills_system_prompt(
         index_lines = []
         for category in sorted(skills_by_category.keys()):
             # Deduplicate and sort skills within each category
-            seen = set()
-            if category in demoted:
-                names = sorted({name for name, _ in skills_by_category[category]})
-                index_lines.append(f"  {category} [names only]: {', '.join(names)}")
-                continue
-            cat_desc = category_descriptions.get(category, "")
-            if cat_desc:
-                index_lines.append(f"  {category}: {cat_desc}")
-            else:
-                index_lines.append(f"  {category}:")
-            for name, desc in sorted(skills_by_category[category], key=lambda x: x[0]):
-                if name in seen:
-                    continue
-                seen.add(name)
-                if desc:
-                    index_lines.append(f"    - {name}: {desc}")
-                else:
-                    index_lines.append(f"    - {name}")
+            names = sorted({name for name, _ in skills_by_category[category]})
+            index_lines.append(f"  {category}: {', '.join(names)}")
 
         result = (
             "## Skills (mandatory)\n"
